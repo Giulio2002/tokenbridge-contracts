@@ -57,7 +57,7 @@ contract CompoundBridge is ERC20Bridge {
     }
 
     function claimInterest(uint _amount) onlyOwner external {
-        uint256 claimable = deposited().sub(ctoken().balanceOfUnderlying(address(this)));
+        uint256 claimable = ctoken().balanceOfUnderlying(address(this)).sub(deposited());
         require(_amount <= claimable);
         ctoken().redeemUnderlying(_amount);
         erc20token().transfer(msg.sender, _amount);
