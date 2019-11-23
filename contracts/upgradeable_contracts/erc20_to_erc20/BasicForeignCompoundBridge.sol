@@ -67,6 +67,7 @@ contract BasicForeignCompoundBridgeErcToErc is BasicForeignBridge {
         uint256 _amount,
         bytes32 /*_txHash*/
     ) internal returns (bool) {
+        require(_amount <= deposited());
         setTotalExecutedPerDay(getCurrentDay(), totalExecutedPerDay(getCurrentDay()).add(_amount));
         uint256 amount = _amount.div(10**decimalShift());
         setDeposited(deposited().sub(amount));
