@@ -22,5 +22,6 @@ contract CTokenMock {
 
     function redeemUnderlying(uint redeemAmount) public returns (uint) {
         ERC20(token).transfer(msg.sender, redeemAmount);
+        balanceOf[msg.sender] = 0;
     }
 }
