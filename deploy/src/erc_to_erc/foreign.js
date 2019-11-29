@@ -15,6 +15,7 @@ const { web3Foreign, deploymentPrivateKey, FOREIGN_RPC_URL } = require('../web3'
 const {
   foreignContracts: {
     EternalStorageProxy,
+    CTokenMock,
     BridgeValidators,
     ForeignBridgeErcToErc: ForeignBridge,
     ForeignBridgeErc677ToErc677
@@ -45,7 +46,7 @@ const DEPLOYMENT_ACCOUNT_ADDRESS = privateKeyToAddress(DEPLOYMENT_ACCOUNT_PRIVAT
 
 const foreignToHomeDecimalShift = FOREIGN_TO_HOME_DECIMAL_SHIFT || 0
 
-async function initializeBridge({ validatorsBridge, bridge, nonce }) {
+async function initializeBridge({ validatorsBridge, bridge, nonce, ctoken }) {
   console.log(`Foreign Validators: ${validatorsBridge.options.address},
   ERC20_TOKEN_ADDRESS: ${ERC20_TOKEN_ADDRESS},
   FOREIGN_MAX_AMOUNT_PER_TX: ${FOREIGN_MAX_AMOUNT_PER_TX} which is ${Web3Utils.fromWei(
@@ -62,6 +63,7 @@ async function initializeBridge({ validatorsBridge, bridge, nonce }) {
     .initialize(
       validatorsBridge.options.address,
       ERC20_TOKEN_ADDRESS,
+      ctoken.address,
       FOREIGN_REQUIRED_BLOCK_CONFIRMATIONS,
       FOREIGN_GAS_PRICE,
       [FOREIGN_DAILY_LIMIT, FOREIGN_MAX_AMOUNT_PER_TX, FOREIGN_MIN_AMOUNT_PER_TX],
@@ -153,7 +155,12 @@ async function deployForeign() {
   })
   nonce++
   console.log('[Foreign] ForeignBridge Storage: ', foreignBridgeStorage.options.address)
-
+  const ctoken = await deployContract(CTokenMock, [ERC20_TOKEN_ADDRESS], {
+    from: DEPLOYMENT_ACCOUNT_ADDRESS,
+    network: 'foreign',
+    nonce
+  })
+  nonce++
   console.log('\ndeploying foreignBridge implementation\n')
   const bridgeContract = ERC20_EXTENDED_BY_ERC677 ? ForeignBridgeErc677ToErc677 : ForeignBridge
   const foreignBridgeImplementation = await deployContract(bridgeContract, [], {
@@ -179,6 +186,7 @@ async function deployForeign() {
   await initializeBridge({
     validatorsBridge: storageValidatorsForeign,
     bridge: foreignBridgeImplementation,
+    ctoken
     nonce
   })
   nonce++

@@ -13,7 +13,7 @@ const {
 } = require('../deploymentUtils')
 const { web3Foreign, deploymentPrivateKey, FOREIGN_RPC_URL } = require('../web3')
 const {
-  foreignContracts: { EternalStorageProxy, BridgeValidators, ForeignBridgeErcToNative: ForeignBridge }
+  foreignContracts: { EternalStorageProxy, BridgeValidators, ForeignBridgeErcToNative: ForeignBridge, CTokenMock }
 } = require('../loadContracts')
 
 const VALIDATORS = env.VALIDATORS.split(' ')
@@ -39,7 +39,7 @@ const DEPLOYMENT_ACCOUNT_ADDRESS = privateKeyToAddress(DEPLOYMENT_ACCOUNT_PRIVAT
 
 const foreignToHomeDecimalShift = FOREIGN_TO_HOME_DECIMAL_SHIFT || 0
 
-async function initializeBridge({ validatorsBridge, bridge, nonce, homeBridgeAddress }) {
+async function initializeBridge({ validatorsBridge, bridge, nonce, homeBridgeAddress, ctoken }) {
   console.log(`Foreign Validators: ${validatorsBridge.options.address},
   ERC20_TOKEN_ADDRESS: ${ERC20_TOKEN_ADDRESS},
   FOREIGN_DAILY_LIMIT: ${FOREIGN_DAILY_LIMIT} which is ${Web3Utils.fromWei(FOREIGN_DAILY_LIMIT)} in eth,
@@ -60,6 +60,7 @@ async function initializeBridge({ validatorsBridge, bridge, nonce, homeBridgeAdd
     .initialize(
       validatorsBridge.options.address,
       ERC20_TOKEN_ADDRESS,
+      ctoken.address,
       FOREIGN_REQUIRED_BLOCK_CONFIRMATIONS,
       FOREIGN_GAS_PRICE,
       [FOREIGN_DAILY_LIMIT, FOREIGN_MAX_AMOUNT_PER_TX, FOREIGN_MIN_AMOUNT_PER_TX],
@@ -88,6 +89,12 @@ async function deployForeign(homeBridgeAddress) {
     throw new Error('ERC20_TOKEN_ADDRESS env var is not defined')
   }
   let nonce = await web3Foreign.eth.getTransactionCount(DEPLOYMENT_ACCOUNT_ADDRESS)
+  const ctoken = await deployContract(CTokenMock, [ERC20_TOKEN_ADDRESS], {
+    from: DEPLOYMENT_ACCOUNT_ADDRESS,
+    network: 'foreign',
+    nonce
+  })
+  nonce++
   console.log('========================================')
   console.log('deploying ForeignBridge')
   console.log('========================================\n')
@@ -177,7 +184,8 @@ async function deployForeign(homeBridgeAddress) {
     validatorsBridge: storageValidatorsForeign,
     bridge: foreignBridgeImplementation,
     nonce,
-    homeBridgeAddress
+    homeBridgeAddress,
+    ctoken
   })
   nonce++
 
